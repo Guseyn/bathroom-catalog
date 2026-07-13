@@ -181,6 +181,7 @@
 
 ### Schema relationships (entity diagram)
 
+```mermaid
 erDiagram
     Collection ||--o{ Category : contains
     Category ||--o{ Product : contains
@@ -225,9 +226,11 @@ erDiagram
         uuid[] additionalSelectedProductIds
         uuid[] requiredProductIds
     }
+```
 
 ### SimpleRule structure (what each field does)
 
+```mermaid
 flowchart LR
     subgraph Rule["SimpleRule"]
         SP[selectedProductId<br/>anchor product]
@@ -246,6 +249,7 @@ flowchart LR
     CO --> Engine
     PR --> Engine
     LC --> Engine
+```
 
 
 ### Different Types of Rules
@@ -284,6 +288,7 @@ For each rule:
 3. Each product can have prohibited products, then we paste them in `prohibitedProductIds`.
 4. And finally each product if order with certain products must require additional products aka `listOfProductCombinations.requiredProductIds`
 
+```mermaid
 flowchart TD
     Start([Client business rule]) --> Q1{Which product<br/>is the anchor?}
 
@@ -320,6 +325,7 @@ flowchart TD
     Admin -->|Pass| Done([Rule ready in catalog])
     Admin -->|Fail| Fix[Fix contradictions]
     Fix --> Admin
+```
 
 ### Conflicts Resolution
 
