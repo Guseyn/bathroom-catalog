@@ -1,4 +1,4 @@
-# bathrom-catalog
+# bathroom-catalog
 
 ## 1. Rules Engine
 
