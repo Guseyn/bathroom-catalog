@@ -23,7 +23,7 @@
     "name": {
       "type": "string",
       "description": "Collection name",
-      "example": "Коллекция Loft"
+      "example": "Loft Collection"
     }
   },
   "required": ["id", "name"]
@@ -47,7 +47,7 @@
     "name": {
       "type": "string",
       "description": "Category name",
-      "example": "смеситель для раковины, душевая стойка, полотенцесушитель, раковина и т.д"
+      "example": "faucet, shower column, towel warmer, sink, etc."
     },
     "collectionId": {
       "type": "string",
@@ -81,7 +81,7 @@
     "name": {
       "type": "string",
       "description": "Product name",
-      "example": "смеситель для раковины, душевая стойка, полотенцесушитель, раковина и т.д"
+      "example": "faucet, shower column, towel warmer, sink, etc."
     },
     "baseCost": {
       "type": "string",
@@ -129,7 +129,7 @@
     "name": {
       "type": "string",
       "description": "Finish name",
-      "example": "хром, матовый чёрный, золото и др."
+      "example": "chrome, matte black, gold, etc."
     }
   },
   "required": ["id", "name"]
@@ -153,7 +153,7 @@
     "name": {
       "type": "string",
       "description": "Human-readable rule description",
-      "example": "Смеситель серии A совместим только с раковинами серии B и C"
+      "example": "Series A faucet is compatible only with series B and C sinks"
     },
     "selectedProductId": {
       "type": "string",
@@ -410,7 +410,7 @@ If any check fails, the engine throws an admin error and the rules must be fixed
     "name": {
       "type": "string",
       "description": "Material name",
-      "example": "Дуб Натур Браш"
+      "example": "Natural Brushed Oak"
     },
     "sku": {
       "type": "string",
@@ -420,7 +420,7 @@ If any check fails, the engine throws an admin error and the rules must be fixed
     "category": {
       "type": "string",
       "description": "Material category (wood, metal, etc.)",
-      "example": "Дерево / Паркет"
+      "example": "Wood / Parquet"
     },
     "manufacturer": {
       "type": "string",
@@ -817,13 +817,13 @@ The applicator, rules checks, and GLB loader are **finish-agnostic** — they re
 {
   "finish": {
     "id": "f-new-001",
-    "name": "Брашированный никель"
+    "name": "Brushed Nickel"
   },
   "material": {
     "materialId": "m-new-001",
     "name": "Brushed Nickel PBR",
     "sku": "MT-BN-001",
-    "category": "Металл",
+    "category": "Metal",
     "manufacturer": "In-house"
   },
   "pbrSettings": {
