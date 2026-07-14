@@ -1,8 +1,12 @@
 # bathroom-catalog
 
-> **Read:** [README_RUS.md](README_RUS.md) — русскоязычная версия спецификации.
+> **Читайте этот документ.** Русскоязычная версия спецификации каталога ванных комнат.  
+> Имена схем, полей, переменных и JSON Schema — на английском (как в коде).  
+> Английская версия: [README.md](README.md)
 
-## 1. Rules Engine
+---
+
+## 1. Движок правил (Rules Engine)
 
 ### JSON Schemas
 
@@ -136,7 +140,7 @@
 }
 ```
 
-5. Rules 
+5. Rules
 
 ```json
 {
@@ -210,10 +214,9 @@
   },
   "required": ["id", "name", "selectedProductId", "compatibleOnlyProductIds", "prohibitedProductIds", "listOfProductCombinations"]
 }
-
 ```
 
-### Schema relationships (entity diagram)
+### Связи между схемами (ER-диаграмма)
 
 ```mermaid
 erDiagram
@@ -262,20 +265,20 @@ erDiagram
     }
 ```
 
-### Rule structure (what each field does)
+### Структура Rule (назначение полей)
 
 ```mermaid
 flowchart LR
     subgraph Rule["Rule"]
-        SP[selectedProductId<br/>anchor product]
-        CO[compatibleOnlyProductIds<br/>whitelist for extras]
-        PR[prohibitedProductIds<br/>blacklist]
+        SP[selectedProductId<br/>якорный товар]
+        CO[compatibleOnlyProductIds<br/>белый список доп. товаров]
+        PR[prohibitedProductIds<br/>чёрный список]
         LC[listOfProductCombinations]
     end
 
-    subgraph Combo["Each combination"]
-        AS[additionalSelectedProductIds<br/>when user also picks...]
-        RQ[requiredProductIds<br/>...must also buy]
+    subgraph Combo["Каждая комбинация"]
+        AS[additionalSelectedProductIds<br/>если пользователь выбрал...]
+        RQ[requiredProductIds<br/>...обязан также купить]
     end
 
     LC --> Combo
@@ -285,65 +288,64 @@ flowchart LR
     LC --> Engine
 ```
 
+### Типы правил
 
-### Different Types of Rules
+1. Товар выбирается через `selectedProductId`; можно ограничить совместимые доп. товары через `compatibleOnlyProductIds` — нельзя выбрать товар вне этого списка. `prohibitedProductIds` и `listOfProductCombinations` могут быть пустыми.
+2. У каждого товара (`selectedProductId` и из `compatibleOnlyProductIds`) ограничен набор отделок в `availableFinishIds`.
+3. Для `selectedProductId` можно задать запрещённые товары в `prohibitedProductIds`. Остальные списки могут быть пустыми.
+4. Если пользователь выбирает доп. товары (`listOfProductCombinations.additionalSelectedProductIds`), для комбинации с `selectedProductId` могут требоваться обязательные товары (`requiredProductIds`). Система рассчитана на любое количество товаров в комбинации.
 
-1. You select a product by using `selectedProductId`, and you can set the only compatible products for the selected product. It means that you cannot select additional products that is not in `compatibleOnlyProductIds`. Other properties like `prohibitedProductIds`, `listOfProductCombinations` can be empty.
-1. There only limited number of finishes that we store in a product with `selectedProductId`and products in `compatibleOnlyProductIds` if those are specified. It means that each product in `selectedProductId` and `compatibleOnlyProductIds` can support only those finishes that we specify in property `availableFinishIds` for those products.
-1. Select product `selectedProductId` has prohibited products, e.i. `prohibitedProductIds`. `compatibleOnlyProductIds` and `listOfProductCombinations` can be empty.
-1. Last type of rule is when a user selects additional products aka  `listOfProductCombinations.additionalSelectedProductIds`, and for compination of products `selectedProductId` and `additionalSelectedProductIds` we require to buy products: `requiredProductIds`. In simple case, `additionalSelectedProductIds` is just one element and `requiredProductIds` is one element as it's mentioned in the task. But in real life, it can be more complex, so let's design our system for combination with any number of products.
+Все правила должны быть согласованы: `prohibitedProductIds` и `compatibleOnlyProductIds` не пересекаются; `listOfProductCombinations` не противоречит другим спискам. Иначе Engine выбрасывает admin error.
 
-All these rules must be consistent, meaning `prohibitedProductIds` cannot contains products in `compatibleOnlyProductIds` and vice versa. Also products in `listOfProductCombinations` don't contradict logically products in `prohibitedProductIds` and `compatibleOnlyProductIds`. Otherwise, our Engine throws admin error and requires us to fix the error.
+### Как Engine проверяет совместимость товаров и отделок
 
-### How Engine Works on Checking compatiblity of selected products and finishes
+**ВХОД**
+1. Пользователь выбирает товар: `input.selectedProductId`.
+2. Пользователь **может, а может и не** выбрать доп. товары: `input.additionalSelectedProductIds`.
+3. Пользователь выбирает отделку: `input.selectedFinishId`.
 
-**INPUT**
-1. User selects a product with 'input.selectedProductId'.
-1. User **may or may not** selects additional products as array of `input.additionalSelectedProductIds`.
-1. User selects a finish with 'input.selectedFinishId'.
+**ПРОЦЕСС**
+1. Engine фильтрует правила по `input.selectedProductId` и `input.additionalSelectedProductIds`.
+2. Engine валидирует каждое правило и все вместе (см. раздел «Разрешение конфликтов»).
 
-**ENGINE PROCESS**
-1. Engine filters all the rules by `input.selectedProductId` and `input.additionalSelectedProductIds`.
-1. Engine validates all those rules individually and all together for like in Conflicts Resolution Section.
+Для каждого правила:
+1. Берёт `availableFinishIds` товара `input.selectedProductId`.
+2. Собирает `availableFinishIds` всех товаров из `input.additionalSelectedProductIds`.
+3. Проверяет `compatibleOnlyProductIds` — если доп. товар не в списке, отказ или сообщение о несовместимости.
+4. Проверяет `prohibitedProductIds` — при совпадении отказ заказа.
+5. Проверяет `listOfProductCombinations` и `requiredProductIds` — при несоответствии требует добавить товары; иначе собирает их `availableFinishIds`.
+6. Проверяет, что все товары в комбинации поддерживают `input.selectedFinishId`.
+7. Расчёт стоимости с отделками — отдельный процесс, вне scope задачи.
 
-For each rule:
-1. Enigne gets `availableFinishIds` from product with `input.selectedProductId`.
-1. Engine checks all products from `input.additionalSelectedProductIds`, and gets all their `availableFinishIds`.
-1. Engine checks all `compatibleOnlyProductIds`. And if there are some in `input.additionalSelectedProductIds` that don't match `compatibleOnlyProductIds`, we inform a user about incompitability or we refuse the order.
-1. Engine checks `prohibitedProductIds`. If there any products are matching `input.selectedProductId` and any of `input.additionalSelectedProductIds` we refuse the order.
-1. Engine checks `listOfProductCombinations` (if a user selects additional products) and then it checks whether a user required to buy products (`requiredProductIds`). If everything is okay we get their `availableFinishIds`, otherwise we require to add those things to the order.
-1. Engine checks if all products in combination support 'input.selectedFinishId'. If yes, the finish is compatible with user order, otherwise no.
-1. Also engine can calculate total cost of selected product with finishes combined. It's a separate process, and it's out of scope of this task.
+### Перенос бизнес-правила клиента в схему Rule
 
-### How to Transfer Client Rule to our Schema for Rules.
-
-1. For each input product, we should choose the only compatible products. It does not really matter from which collections those products are from. For example, product **A** from collection **1** potentillay can be only compatible from product **B** in collection **2**. It's just for the flexibility at zero cost.
-2. Each product must support certain finishes and have a base cost.
-3. Each product can have prohibited products, then we paste them in `prohibitedProductIds`.
-4. And finally each product if order with certain products must require additional products aka `listOfProductCombinations.requiredProductIds`
+1. Для каждого товара задаём совместимые товары (коллекция не важа — товар A из коллекции 1 может быть совместим только с B из коллекции 2).
+2. У каждого товара — поддерживаемые отделки и `baseCost`.
+3. Запрещённые товары — в `prohibitedProductIds`.
+4. Обязательные доп. товары при определённых комбинациях — в `listOfProductCombinations.requiredProductIds`.
 
 ```mermaid
 flowchart TD
-    Start([Client business rule]) --> Q1{Which product<br/>is the anchor?}
+    Start([Бизнес-правило клиента]) --> Q1{Какой товар<br/>якорный?}
 
-    Q1 --> SP[Set selectedProductId]
+    Q1 --> SP[Задать selectedProductId]
 
-    SP --> Q2{Which products can<br/>be added with it?}
-    Q2 -->|Only specific ones| CO[Fill compatibleOnlyProductIds]
-    Q2 -->|Any / not specified| COE[Leave compatibleOnlyProductIds empty]
+    SP --> Q2{Какие товары можно<br/>добавить?}
+    Q2 -->|Только конкретные| CO[Заполнить compatibleOnlyProductIds]
+    Q2 -->|Любые / не указано| COE[Оставить compatibleOnlyProductIds пустым]
 
-    SP --> Q3{Any products<br/>must NOT be used?}
-    Q3 -->|Yes| PR[Fill prohibitedProductIds]
-    Q3 -->|No| PRE[Leave prohibitedProductIds empty]
+    SP --> Q3{Есть запрещённые<br/>товары?}
+    Q3 -->|Да| PR[Заполнить prohibitedProductIds]
+    Q3 -->|Нет| PRE[Оставить prohibitedProductIds пустым]
 
-    SP --> Q4{If user picks X,<br/>must they also buy Y?}
-    Q4 -->|Yes| LC[Add to listOfProductCombinations]
-    Q4 -->|No| LCE[Leave listOfProductCombinations empty]
+    SP --> Q4{Выбрал X —<br/>обязан купить Y?}
+    Q4 -->|Да| LC[Добавить в listOfProductCombinations]
+    Q4 -->|Нет| LCE[Оставить listOfProductCombinations пустым]
 
     LC --> LC1[additionalSelectedProductIds = X]
     LC --> LC2[requiredProductIds = Y]
 
-    CO --> Q5{Which finishes<br/>does each product support?}
+    CO --> Q5{Какие отделки<br/>поддерживает каждый товар?}
     COE --> Q5
     PR --> Q5
     PRE --> Q5
@@ -351,49 +353,50 @@ flowchart TD
     LC2 --> Q5
     LCE --> Q5
 
-    Q5 --> AT[Set Product.availableFinishIds<br/>on anchor + related products]
-    AT --> Q6{Price?}
-    Q6 --> BC[Set Product.baseCost]
+    Q5 --> AT[Задать Product.availableFinishIds<br/>для якоря и связанных товаров]
+    AT --> Q6{Цена?}
+    Q6 --> BC[Задать Product.baseCost]
 
-    BC --> Admin[Run admin conflict checks]
-    Admin -->|Pass| Done([Rule ready in catalog])
-    Admin -->|Fail| Fix[Fix contradictions]
+    BC --> Admin[Проверка конфликтов админом]
+    Admin -->|OK| Done([Правило готово])
+    Admin -->|Ошибка| Fix[Исправить противоречия]
     Fix --> Admin
 ```
 
-### Conflicts Resolution
+### Разрешение конфликтов
 
-#### Empty lists mean
-1. If `compatibleOnlyProductIds` is empty, the user can pick any additional product (unless it is prohibited).
-1. If `prohibitedProductIds` is empty, nothing is blocked by this rule.
-1. If `listOfProductCombinations` is empty, this rule does not require any extra products.
+#### Пустые списки означают
+1. Пустой `compatibleOnlyProductIds` — можно выбрать любой доп. товар (если не запрещён).
+2. Пустой `prohibitedProductIds` — ничего не блокируется этим правилом.
+3. Пустой `listOfProductCombinations` — правило не требует доп. товаров.
 
-#### Individual Rule Check (for admins)
-1. A product cannot be in both `compatibleOnlyProductIds` and `prohibitedProductIds`.
-1. `selectedProductId` cannot be in `prohibitedProductIds`.
-1. `selectedProductId` should not be in `compatibleOnlyProductIds`.
-1. Products in `additionalSelectedProductIds` cannot be in `prohibitedProductIds`.
-1. Products in `requiredProductIds` cannot be in `prohibitedProductIds`.
-1. If `compatibleOnlyProductIds` is not empty, every `additionalSelectedProductIds` entry must be inside `compatibleOnlyProductIds`.
-1. The same `additionalSelectedProductIds` set cannot appear twice with different `requiredProductIds`.
-1. All product IDs in the rule must exist in the product catalog.
+#### Проверка отдельного правила (для админов)
+1. Товар не может быть одновременно в `compatibleOnlyProductIds` и `prohibitedProductIds`.
+2. `selectedProductId` не может быть в `prohibitedProductIds`.
+3. `selectedProductId` не должен быть в `compatibleOnlyProductIds`.
+4. Товары из `additionalSelectedProductIds` не могут быть в `prohibitedProductIds`.
+5. Товары из `requiredProductIds` не могут быть в `prohibitedProductIds`.
+6. Если `compatibleOnlyProductIds` не пуст — каждый `additionalSelectedProductIds` должен быть внутри него.
+7. Один и тот же набор `additionalSelectedProductIds` не может иметь разные `requiredProductIds`.
+8. Все ID товаров в правиле должны существовать в каталоге.
 
-If any check fails, the engine throws an admin error and the rule must be fixed before use.
+При ошибке — admin error, правило нужно исправить.
 
-#### Two or more rules with the same `selectedProductId` (for admin)
-1. A product allowed in one rule’s `compatibleOnlyProductIds` cannot be in another rule’s `prohibitedProductIds` for the same `selectedProductId`.
-2. If two rules both have `compatibleOnlyProductIds`, their lists must share at least one product. If the overlap is empty, no additional product can satisfy both rules.
-3. Two rules cannot require different `requiredProductIds` for the same `additionalSelectedProductIds` set.
-4. A product required by one rule cannot be prohibited by another rule for the same `selectedProductId`.
+#### Два и более правил с одним `selectedProductId` (для админов)
+1. Товар из `compatibleOnlyProductIds` одного правила не может быть в `prohibitedProductIds` другого для того же `selectedProductId`.
+2. Если у двух правил оба заполнены `compatibleOnlyProductIds` — списки должны иметь хотя бы одно общее пересечение.
+3. Два правила не могут требовать разные `requiredProductIds` для одного набора `additionalSelectedProductIds`.
+4. Товар, обязательный в одном правиле, не может быть запрещён в другом для того же `selectedProductId`.
 
-If any check fails, the engine throws an admin error and the rules must be fixed before use.
+При ошибке — admin error, правила нужно исправить.
 
+---
 
-## 2. Finish Configuration
+## 2. Конфигурация отделок (Finish Configuration)
 
 ### JSON Schemas
 
-1. Material:
+1. Material
 
 ```json
 {
@@ -491,10 +494,10 @@ If any check fails, the engine throws an admin error and the rules must be fixed
     }
   },
   "required": [
-    "materialId", 
-    "workflow", 
-    "baseColorFactor", 
-    "roughnessFactor", 
+    "materialId",
+    "workflow",
+    "baseColorFactor",
+    "roughnessFactor",
     "metalnessFactor"
   ],
   "additionalProperties": false
@@ -549,7 +552,7 @@ If any check fails, the engine throws an admin error and the rules must be fixed
 }
 ```
 
-### Diagram:
+### Диаграмма
 
 ```mermaid
 erDiagram
@@ -587,7 +590,7 @@ erDiagram
 
 ### GlbMaterialSlotManifest
 
-A **GLB** file is the binary container for glTF — a single 3D asset (geometry, materials, textures) used by the configurator. **Material slots** are named surfaces inside the GLB. Slot names are the contract between the artist (who exports the model) and the developer (who swaps finishes at runtime).
+**GLB** — бинарный контейнер glTF: единый 3D-ассет (геометрия, материалы, текстуры) для конфигуратора. **Material slots** — именованные поверхности внутри GLB. Имена слотов — контракт между художником (экспорт модели) и разработчиком (подмена отделок в рантайме).
 
 ```json
 {
@@ -646,7 +649,7 @@ A **GLB** file is the binary container for glTF — a single 3D asset (geometry,
 }
 ```
 
-Example:
+Пример:
 
 ```json
 {
@@ -662,32 +665,32 @@ Example:
 }
 ```
 
-### Naming convention
+### Конвенция именования
 
-| Rule | Good | Bad |
+| Правило | Хорошо | Плохо |
 |---|---|---|
-| English, lowercase, `snake_case` | `body_metal` | `Material.001`, `Chrome_Body` |
-| Name by **role**, not by finish | `handle_metal` | `chrome_handle`, `gold_body` |
-| Swappable slots: suffix `_metal` or `_finish` | `spout_metal` | `spout` |
-| Fixed slots: suffix `_fixed` | `basin_ceramic_fixed` | `basin_white` |
-| Same slot names across product variants in a series | all faucets use `body_metal` | `body` on one model, `Body_Metal` on another |
+| Английский, lowercase, `snake_case` | `body_metal` | `Material.001`, `Chrome_Body` |
+| Имя по **роли**, не по отделке | `handle_metal` | `chrome_handle`, `gold_body` |
+| Подменяемые слоты: суффикс `_metal` или `_finish` | `spout_metal` | `spout` |
+| Фиксированные слоты: суффикс `_fixed` | `basin_ceramic_fixed` | `basin_white` |
+| Одинаковые имена слотов в серии | все смесители: `body_metal` | `body` на одной модели, `Body_Metal` на другой |
 
-### Logical behaviour
+### Логика работы
 
-**Artist**
-1. Split the model into material regions and assign placeholder materials using the agreed slot names.
-2. Export as GLB (glTF 2.0, PBR metallic-roughness). Every `materials[].name` must match a `slotName` in the manifest exactly.
-3. Ship the GLB together with a `GlbMaterialSlotManifest` for the product SKU.
-4. Do not bake finish names into slot names — finish is runtime data from the `Finish` / `Material` catalog.
+**Художник**
+1. Разделить модель на материальные регионы, назначить placeholder-материалы с согласованными именами слотов.
+2. Экспорт в GLB (glTF 2.0, PBR metallic-roughness). Каждый `materials[].name` = `slotName` в манифесте.
+3. Передать GLB вместе с `GlbMaterialSlotManifest` для SKU товара.
+4. Не вшивать названия отделок в имена слотов — отделка задаётся в рантайме из каталога `Finish` / `Material`.
 
-**Developer**
-1. Load the GLB and read `materials[].name` from the glTF scene.
-2. Load `GlbMaterialSlotManifest` by `productSku` and validate: every manifest `slotName` exists in the GLB; no unnamed materials (`Material.001`) in production assets.
-3. On finish change: for each slot where `swappable === true`, resolve `selectedFinishId` → `Material` + `PBRSettings` + `TextureMap[]`, then apply to the matching GLB slot.
-4. Slots with `swappable === false` or suffix `_fixed` are never overridden at runtime.
-5. Reject the asset at CI / admin review if manifest and GLB slot names diverge.
+**Разработчик**
+1. Загрузить GLB, прочитать `materials[].name` из glTF-сцены.
+2. Загрузить `GlbMaterialSlotManifest` по `productSku`, провалидировать: все `slotName` есть в GLB; нет безымянных материалов (`Material.001`).
+3. При смене отделки: для `swappable === true` — `selectedFinishId` → `Material` + `PBRSettings` + `TextureMap[]` → применить к слоту.
+4. Слоты с `swappable === false` или суффиксом `_fixed` не перезаписываются.
+5. Отклонять ассет на CI / админ-ревью при расхождении манифеста и GLB.
 
-**Runtime flow**
+**Поток в рантайме**
 
 ```mermaid
 flowchart LR
@@ -702,11 +705,11 @@ flowchart LR
     Material -->|"apply PBR"| GLB
 ```
 
-### Application mechanism
+### Механизм применения
 
-User picks a **material** (`materialId`). The system links it to a `Finish`, checks product compatibility via Rules Engine (§1), then applies PBR to all matching instances in the scene at once.
+Пользователь выбирает **материал** (`materialId`). Система связывает его с `Finish`, проверяет совместимость через Rules Engine (§1), применяет PBR ко всем подходящим экземплярам в сцене одновременно.
 
-**1. FinishMaterialMapping** — connects render material to catalog finish:
+**1. FinishMaterialMapping** — связь материала рендера с отделкой каталога:
 
 ```json
 {
@@ -731,7 +734,7 @@ User picks a **material** (`materialId`). The system links it to a `Finish`, che
 }
 ```
 
-**2. ApplyMaterialToScene** — input for scene-wide apply:
+**2. ApplyMaterialToScene** — вход для применения по всей сцене:
 
 ```json
 {
@@ -775,43 +778,43 @@ User picks a **material** (`materialId`). The system links it to a `Finish`, che
 }
 ```
 
-**Behaviour**
+**Поведение**
 1. `materialId` → `FinishMaterialMapping` → `finishId`.
-2. Filter `sceneProductIds` where `Product.categoryId === categoryId`.
-3. **Compatibility**: for each filtered product, `finishId` must be in `Product.availableFinishIds`; then call Rules Engine (§1) with `selectedFinishId = finishId` — if rejected, stop.
-4. **Apply**: for each compatible instance, load `GlbMaterialSlotManifest` → resolve `Material` + `PBRSettings` + `TextureMap[]` → apply to all `swappable` slots in one pass.
+2. Отфильтровать `sceneProductIds`, где `Product.categoryId === categoryId`.
+3. **Совместимость**: для каждого товара `finishId` ∈ `Product.availableFinishIds`; вызвать Rules Engine (§1) с `selectedFinishId = finishId` — при отказе остановиться.
+4. **Применение**: для каждого совместимого экземпляра загрузить `GlbMaterialSlotManifest` → `Material` + `PBRSettings` + `TextureMap[]` → применить ко всем `swappable` слотам за один проход.
 
 ```mermaid
 flowchart TD
     Input["materialId + categoryId"] --> Map["FinishMaterialMapping → finishId"]
-    Map --> Filter["scene products by categoryId"]
+    Map --> Filter["товары сцены по categoryId"]
     Filter --> Check["availableFinishIds + Rules Engine §1"]
-    Check -->|pass| Apply["PBR to swappable slots on all instances"]
-    Check -->|fail| Block["Reject"]
+    Check -->|pass| Apply["PBR на swappable слоты всех экземпляров"]
+    Check -->|fail| Block["Отказ"]
 ```
 
-### Extensibility (config-only new finish)
+### Расширяемость (новая отделка только через конфиг)
 
-The applicator, rules checks, and GLB loader are **finish-agnostic** — they read catalog config at runtime. Adding a finish = adding records, no deploy.
+Аппликатор, проверки правил и загрузчик GLB **не зависят от конкретной отделки** — читают конфиг в рантайме. Новая отделка = новые записи, без деплоя кода.
 
-**Checklist — what to add when introducing a new finish (e.g. "Brushed Nickel"):**
+**Чеклист — что добавить при новой отделке (напр. «Брашированный никель»):**
 
-| # | Config record | Schema | Required? | Why |
+| # | Запись конфига | Схема | Обяз.? | Зачем |
 |---|---|---|---|---|
-| 1 | `Finish` | §1 | yes | Catalog entry users pick |
-| 2 | `Material` | §2 | yes | Render payload for 3D |
-| 3 | `PBRSettings` | §2 | yes | Roughness, metalness, color, tiling |
-| 4 | `TextureMap[]` | §2 | yes* | Albedo, normal, roughness, etc. (*or flat color via `baseColorFactor` only) |
-| 5 | `FinishMaterialMapping` | above | yes | Links `finishId` ↔ `materialId` for apply flow |
-| 6 | `Product.availableFinishIds` | §1 | yes | Add `finishId` to every product that supports it |
+| 1 | `Finish` | §1 | да | Запись в каталоге для выбора |
+| 2 | `Material` | §2 | да | Данные для 3D-рендера |
+| 3 | `PBRSettings` | §2 | да | Шероховатость, металличность, цвет, тайлинг |
+| 4 | `TextureMap[]` | §2 | да* | Albedo, normal, roughness и т.д. (*или только `baseColorFactor`) |
+| 5 | `FinishMaterialMapping` | выше | да | Связь `finishId` ↔ `materialId` |
+| 6 | `Product.availableFinishIds` | §1 | да | Добавить `finishId` каждому поддерживающему товару |
 
-**Not required**
-- GLB re-export — slot names (`body_metal`, …) stay the same
-- `GlbMaterialSlotManifest` changes — only update `defaultFinishId` if this finish is the new default
-- Code changes — renderer resolves any `materialId` the same way
-- `Rule` changes — only if the new finish affects product compatibility logic
+**Не требуется**
+- Переэкспорт GLB — имена слотов (`body_metal`, …) не меняются
+- Изменения `GlbMaterialSlotManifest` — только `defaultFinishId`, если новая отделка стала дефолтной
+- Изменения кода — рендерер обрабатывает любой `materialId` одинаково
+- Изменения `Rule` — только если меняется логика совместимости товаров
 
-**Example — minimal config bundle for one new finish:**
+**Пример — минимальный конфиг-бандл:**
 
 ```json
 {
@@ -847,22 +850,19 @@ The applicator, rules checks, and GLB loader are **finish-agnostic** — they re
 }
 ```
 
-**Behaviour**
-1. Admin uploads config → new finish appears in picker for products that list it.
-2. User selects material → existing `ApplyMaterialToScene` flow handles it.
-3. Same pipeline for every finish: mapping → compatibility → PBR apply.
+**Поведение**
+1. Админ загружает конфиг → отделка появляется в пикере для нужных товаров.
+2. Пользователь выбирает материал → срабатывает `ApplyMaterialToScene`.
+3. Один пайплайн для любой отделки: mapping → совместимость → PBR.
 
-### Integration with Rules Engine (§1)
+### Связь с Rules Engine (§1)
 
-1. **Source of finish limits** — `Product.availableFinishIds` (§1) defines which finishes each product supports.
-2. **UI picker** — show only finishes that appear in `availableFinishIds` of **every** product in the current order (`selectedProductId` + `additionalSelectedProductIds`).
-3. **materialId → finishId** — before any check, resolve via `FinishMaterialMapping`.
-4. **Engine input** — pass `selectedProductId`, `additionalSelectedProductIds`, `selectedFinishId` (same as §1 engine input).
-5. **Product rules first** — engine validates `compatibleOnlyProductIds`, `prohibitedProductIds`, `listOfProductCombinations` (unchanged from §1).
-6. **Finish check** — engine verifies `selectedFinishId` is in `availableFinishIds` of anchor + all additional products (and any `requiredProductIds` from combinations).
-7. **Scene apply gate** — `ApplyMaterialToScene` runs only if engine returns pass; otherwise block and show message.
-8. **Per-instance check** — each scene product must also list the `finishId` in its own `availableFinishIds` (a product in the scene may support fewer finishes than the order allows).
-9. **No duplicate logic** — §2 never re-implements rules; it delegates to §1 engine, then applies PBR.
-
-
-
+1. **Источник ограничений** — `Product.availableFinishIds` (§1) задаёт поддерживаемые отделки каждого товара.
+2. **UI-пикер** — показывать только отделки из пересечения `availableFinishIds` **всех** товаров текущего заказа (`selectedProductId` + `additionalSelectedProductIds`).
+3. **materialId → finishId** — перед проверками через `FinishMaterialMapping`.
+4. **Вход Engine** — `selectedProductId`, `additionalSelectedProductIds`, `selectedFinishId` (как в §1).
+5. **Сначала правила товаров** — `compatibleOnlyProductIds`, `prohibitedProductIds`, `listOfProductCombinations` (без изменений).
+6. **Проверка отделки** — `selectedFinishId` ∈ `availableFinishIds` якоря, доп. товаров и `requiredProductIds`.
+7. **Шлюз применения** — `ApplyMaterialToScene` только при pass от Engine; иначе блокировка и сообщение.
+8. **Проверка по экземплярам** — каждый товар в сцене должен иметь `finishId` в своём `availableFinishIds`.
+9. **Без дублирования логики** — §2 делегирует §1 Engine, затем применяет PBR.
