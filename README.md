@@ -1,6 +1,6 @@
 # bathroom-catalog
 
-> **Read:** [README_RUS.md](README_RUS.md) — русскоязычная версия спецификации.
+> **Read:** [README_RUS.md](README_RUS.md) — Russian version of the specification.
 
 ## 1. Rules Engine
 
@@ -12,17 +12,17 @@
 {
   "$schema": "https://json-schema.org",
   "title": "Collection",
-  "description": "Коллекция изделий (группа товаров одной линейки или стиля)",
+  "description": "Product collection (group of items in one line or style)",
   "type": "object",
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор коллекции"
+      "description": "PRIMARY KEY: Unique collection identifier"
     },
     "name": {
       "type": "string",
-      "description": "Название коллекции",
+      "description": "Collection name",
       "example": "Коллекция Loft"
     }
   },
@@ -36,23 +36,23 @@
 {
   "$schema": "https://json-schema.org",
   "title": "Category",
-  "description": "Категория изделия внутри коллекции",
+  "description": "Product category within a collection",
   "type": "object",
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор категории"
+      "description": "PRIMARY KEY: Unique category identifier"
     },
     "name": {
       "type": "string",
-      "description": "Название категории",
+      "description": "Category name",
       "example": "смеситель для раковины, душевая стойка, полотенцесушитель, раковина и т.д"
     },
     "collectionId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Collection.id"
+      "description": "FOREIGN KEY: Reference to Collection.id"
     }
   },
   "required": ["id", "name", "collectionId"]
@@ -65,46 +65,46 @@
 {
   "$schema": "https://json-schema.org",
   "title": "Product",
-  "description": "Товар каталога (изделие с базовой ценой и доступными отделками)",
+  "description": "Catalog product (item with base price and available finishes)",
   "type": "object",
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор товара"
+      "description": "PRIMARY KEY: Unique product identifier"
     },
     "sku": {
       "type": "string",
-      "description": "Артикул производителя",
+      "description": "Manufacturer SKU",
       "example": "3197305"
     },
     "name": {
       "type": "string",
-      "description": "Название товара",
+      "description": "Product name",
       "example": "смеситель для раковины, душевая стойка, полотенцесушитель, раковина и т.д"
     },
     "baseCost": {
       "type": "string",
-      "description": "Базовая стоимость без учёта отделки (упрощённое представление)",
+      "description": "Base cost excluding finish (simplified representation)",
       "example": "$45"
     },
     "collectionId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Collection.id"
+      "description": "FOREIGN KEY: Reference to Collection.id"
     },
     "categoryId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Category.id"
+      "description": "FOREIGN KEY: Reference to Category.id"
     },
     "availableFinishIds": {
       "type": "array",
-      "description": "Список отделок, доступных для данного товара",
+      "description": "List of finishes available for this product",
       "items": {
         "type": "string",
         "format": "uuid",
-        "description": "FOREIGN KEY: Ссылка на Finish.id"
+        "description": "FOREIGN KEY: Reference to Finish.id"
       }
     }
   },
@@ -118,17 +118,17 @@
 {
   "$schema": "https://json-schema.org",
   "title": "Finish",
-  "description": "Вариант отделки поверхности изделия (финиш)",
+  "description": "Surface finish variant for a product",
   "type": "object",
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор отделки"
+      "description": "PRIMARY KEY: Unique finish identifier"
     },
     "name": {
       "type": "string",
-      "description": "Название отделки",
+      "description": "Finish name",
       "example": "хром, матовый чёрный, золото и др."
     }
   },
@@ -142,65 +142,65 @@
 {
   "$schema": "https://json-schema.org",
   "title": "Rule",
-  "description": "Правило совместимости товаров в конфигураторе",
+  "description": "Product compatibility rule in the configurator",
   "type": "object",
   "properties": {
     "id": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор правила"
+      "description": "PRIMARY KEY: Unique rule identifier"
     },
     "name": {
       "type": "string",
-      "description": "Человекочитаемое описание правила",
+      "description": "Human-readable rule description",
       "example": "Смеситель серии A совместим только с раковинами серии B и C"
     },
     "selectedProductId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Якорный товар, для которого действует правило"
+      "description": "FOREIGN KEY: Anchor product the rule applies to"
     },
     "compatibleOnlyProductIds": {
       "type": "array",
-      "description": "Белый список: только эти товары можно добавить к якорному",
+      "description": "Whitelist: only these products can be added with the anchor",
       "items": {
         "type": "string",
         "format": "uuid",
-        "description": "FOREIGN KEY: Ссылка на Product.id"
+        "description": "FOREIGN KEY: Reference to Product.id"
       }
     },
     "prohibitedProductIds": {
       "type": "array",
-      "description": "Чёрный список: эти товары нельзя использовать с якорным",
+      "description": "Blacklist: these products cannot be used with the anchor",
       "items": {
         "type": "string",
         "format": "uuid",
-        "description": "FOREIGN KEY: Ссылка на Product.id"
+        "description": "FOREIGN KEY: Reference to Product.id"
       }
     },
     "listOfProductCombinations": {
       "type": "array",
-      "description": "Обязательные доп. товары при выборе определённой комбинации",
+      "description": "Required add-on products when a specific combination is selected",
       "items": {
         "type": "object",
-        "description": "Комбинация доп. товаров и обязательных к покупке позиций",
+        "description": "Combination of add-on and required-to-buy products",
         "properties": {
           "additionalSelectedProductIds": {
             "type": "array",
-            "description": "Доп. товары, которые выбрал пользователь",
+            "description": "Add-on products selected by the user",
             "items": {
               "type": "string",
               "format": "uuid",
-              "description": "FOREIGN KEY: Ссылка на Product.id"
+              "description": "FOREIGN KEY: Reference to Product.id"
             }
           },
           "requiredProductIds": {
             "type": "array",
-            "description": "Товары, которые обязательно нужно добавить в заказ",
+            "description": "Products that must be added to the order",
             "items": {
               "type": "string",
               "format": "uuid",
-              "description": "FOREIGN KEY: Ссылка на Product.id"
+              "description": "FOREIGN KEY: Reference to Product.id"
             }
           }
         },
@@ -399,32 +399,32 @@ If any check fails, the engine throws an admin error and the rules must be fixed
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Material",
-  "description": "Основная сущность отделочного материала (Родительская таблица)",
+  "description": "Main finishing material entity (parent table)",
   "type": "object",
   "properties": {
     "materialId": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор материала"
+      "description": "PRIMARY KEY: Unique material identifier"
     },
     "name": {
       "type": "string",
-      "description": "Название материала",
+      "description": "Material name",
       "example": "Дуб Натур Браш"
     },
     "sku": {
       "type": "string",
-      "description": "Артикул материала",
+      "description": "Material SKU",
       "example": "WD-OAK-042"
     },
     "category": {
       "type": "string",
-      "description": "Категория материала (дерево, металл и т.д.)",
+      "description": "Material category (wood, metal, etc.)",
       "example": "Дерево / Паркет"
     },
     "manufacturer": {
       "type": "string",
-      "description": "Производитель материала",
+      "description": "Material manufacturer",
       "example": "Barlinek"
     }
   },
@@ -439,23 +439,23 @@ If any check fails, the engine throws an admin error and the rules must be fixed
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "PBRSettings",
-  "description": "Физические параметры рендеринга (Связь 1:1 к Material)",
+  "description": "Physical rendering parameters (1:1 link to Material)",
   "type": "object",
   "properties": {
     "materialId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Material.materialId"
+      "description": "FOREIGN KEY: Reference to Material.materialId"
     },
     "workflow": {
       "type": "string",
       "enum": ["metallicRoughness", "specularGlossiness"],
-      "description": "Рабочий процесс PBR-рендеринга",
+      "description": "PBR rendering workflow",
       "default": "metallicRoughness"
     },
     "baseColorFactor": {
       "type": "array",
-      "description": "Базовый цвет материала [R, G, B, A]",
+      "description": "Material base color [R, G, B, A]",
       "minItems": 4,
       "maxItems": 4,
       "items": {
@@ -467,26 +467,26 @@ If any check fails, the engine throws an admin error and the rules must be fixed
     },
     "roughnessFactor": {
       "type": "number",
-      "description": "Коэффициент шероховатости (0 — гладкий, 1 — матовый)",
+      "description": "Roughness factor (0 = smooth, 1 = matte)",
       "minimum": 0.0,
       "maximum": 1.0,
       "default": 0.5
     },
     "metalnessFactor": {
       "type": "number",
-      "description": "Коэффициент металличности (0 — диэлектрик, 1 — металл)",
+      "description": "Metalness factor (0 = dielectric, 1 = metal)",
       "minimum": 0.0,
       "maximum": 1.0,
       "default": 0.0
     },
     "tilingU": {
       "type": "number",
-      "description": "Повтор текстуры по оси U",
+      "description": "Texture tiling on U axis",
       "default": 1.0
     },
     "tilingV": {
       "type": "number",
-      "description": "Повтор текстуры по оси V",
+      "description": "Texture tiling on V axis",
       "default": 1.0
     }
   },
@@ -507,39 +507,39 @@ If any check fails, the engine throws an admin error and the rules must be fixed
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TextureMap",
-  "description": "Файл текстурной карты (Связь 1:N к Material)",
+  "description": "Texture map file (1:N link to Material)",
   "type": "object",
   "properties": {
     "textureId": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный ID текстурного файла"
+      "description": "PRIMARY KEY: Unique texture file ID"
     },
     "materialId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Material.materialId"
+      "description": "FOREIGN KEY: Reference to Material.materialId"
     },
     "mapType": {
       "type": "string",
       "enum": ["albedo", "normal", "roughness", "metallic", "ambientOcclusion", "displacement"],
-      "description": "Тип (канал) текстуры"
+      "description": "Texture type (channel)",
     },
     "fileUrl": {
       "type": "string",
       "format": "uri",
-      "description": "Прямая ссылка на S3-хранилище",
+      "description": "Direct link to S3 storage",
       "example": "https://storage.yandexcloud.net/assets/oak_normal.jpg"
     },
     "width": {
       "type": "integer",
-      "description": "Ширина текстуры в пикселях",
+      "description": "Texture width in pixels",
       "minimum": 1,
       "example": 2048
     },
     "height": {
       "type": "integer",
-      "description": "Высота текстуры в пикселях",
+      "description": "Texture height in pixels",
       "minimum": 1,
       "example": 2048
     }
@@ -593,47 +593,47 @@ A **GLB** file is the binary container for glTF — a single 3D asset (geometry,
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "GlbMaterialSlotManifest",
-  "description": "Манифест материальных слотов GLB-модели (связь товара с 3D-ассетом и правилами подмены отделок)",
+  "description": "GLB model material slot manifest (links product to 3D asset and finish swap rules)",
   "type": "object",
   "properties": {
     "manifestId": {
       "type": "string",
       "format": "uuid",
-      "description": "PRIMARY KEY: Уникальный идентификатор манифеста"
+      "description": "PRIMARY KEY: Unique manifest identifier"
     },
     "productSku": {
       "type": "string",
-      "description": "FOREIGN KEY: Артикул товара (Product.sku), к которому привязана модель"
+      "description": "FOREIGN KEY: Product SKU (Product.sku) the model is bound to"
     },
     "glbUrl": {
       "type": "string",
       "format": "uri",
-      "description": "Прямая ссылка на GLB-файл в хранилище",
+      "description": "Direct link to GLB file in storage",
       "example": "https://storage.yandexcloud.net/models/faucet_loft_3197305.glb"
     },
     "slots": {
       "type": "array",
-      "description": "Список материальных слотов модели",
+      "description": "List of model material slots",
       "minItems": 1,
       "items": {
         "type": "object",
         "title": "MaterialSlot",
-        "description": "Один именованный материальный слот в GLB",
+        "description": "One named material slot in the GLB",
         "properties": {
           "slotName": {
             "type": "string",
             "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$",
-            "description": "Имя слота в GLB (materials[].name). Формат: snake_case, латиница, нижний регистр",
+            "description": "Slot name in GLB (materials[].name). Format: snake_case, Latin, lowercase",
             "example": "body_metal"
           },
           "swappable": {
             "type": "boolean",
-            "description": "Можно ли подменять отделку на этом слоте при выборе Finish"
+            "description": "Whether finish can be swapped on this slot when a Finish is selected"
           },
           "defaultFinishId": {
             "type": "string",
             "format": "uuid",
-            "description": "FOREIGN KEY: Отделка по умолчанию (Finish.id). Обязательна, если swappable = true"
+            "description": "FOREIGN KEY: Default finish (Finish.id). Required when swappable = true"
           }
         },
         "required": ["slotName", "swappable"],
@@ -712,18 +712,18 @@ User picks a **material** (`materialId`). The system links it to a `Finish`, che
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "FinishMaterialMapping",
-  "description": "Связь Material ↔ Finish (materialId на входе → finishId для проверок)",
+  "description": "Material ↔ Finish link (materialId input → finishId for validation)",
   "type": "object",
   "properties": {
     "finishId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Finish.id"
+      "description": "FOREIGN KEY: Reference to Finish.id"
     },
     "materialId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Ссылка на Material.materialId"
+      "description": "FOREIGN KEY: Reference to Material.materialId"
     }
   },
   "required": ["finishId", "materialId"],
@@ -737,36 +737,36 @@ User picks a **material** (`materialId`). The system links it to a `Finish`, che
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ApplyMaterialToScene",
-  "description": "Применение материала ко всем товарам нужного типа в сцене",
+  "description": "Apply material to all products of the given type in the scene",
   "type": "object",
   "properties": {
     "materialId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Выбранный материал (Material.materialId)"
+      "description": "FOREIGN KEY: Selected material (Material.materialId)"
     },
     "categoryId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Тип товаров в сцене (Category.id), напр. все смесители"
+      "description": "FOREIGN KEY: Product type in scene (Category.id), e.g. all faucets"
     },
     "selectedProductId": {
       "type": "string",
       "format": "uuid",
-      "description": "FOREIGN KEY: Якорный товар заказа (для Rules Engine)"
+      "description": "FOREIGN KEY: Order anchor product (for Rules Engine)"
     },
     "additionalSelectedProductIds": {
       "type": "array",
-      "description": "Доп. товары в заказе",
+      "description": "Additional products in the order",
       "items": { "type": "string", "format": "uuid" }
     },
     "sceneProductIds": {
       "type": "array",
-      "description": "Товары, размещённые в 3D-сцене",
+      "description": "Products placed in the 3D scene",
       "items": {
         "type": "string",
         "format": "uuid",
-        "description": "FOREIGN KEY: Ссылка на Product.id"
+        "description": "FOREIGN KEY: Reference to Product.id"
       }
     }
   },
